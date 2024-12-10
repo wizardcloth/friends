@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Puzzle</title>
+    <style>
+        body {
+            background: linear-gradient(to right, #2c3e50, #bdc3c7);
+            background: linear-gradient(to right, #2a3439, #000000);
+
+            /* Dark gradient background */
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #ff66cc;
+            text-shadow: 2px 2px 5px red;
+            font-size: 30px;
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        .puzzle-container {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 10px;
+            margin-top: 50px;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .puzzle-piece {
+            width: 100px;
+            height: 100px;
+            background-size: cover;
+            border: 2px solid #fff;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .puzzle-piece:hover {
+            opacity: 0.7;
+        }
+
+        #message {
+            display: none;
+            font-size: 30px;
+            color: #ff66cc;
+            margin-top: 30px;
+        }
+
+        #reset-btn {
+            display: none;
+            padding: 10px 20px;
+            background-color: gray;
+            color: red;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        #reset-btn:hover {
+            background-color: #ff3385;
+        }
+
+        /* Jumping animation when reset is clicked */
+        .jump-out {
+            animation: jumpOut 0.6s ease forwards;
+        }
+
+        @keyframes jumpOut {
+            0% {
+                transform: scale(1) translateY(0);
+            }
+
+            50% {
+                transform: scale(1.5) translateY(-50px);
+            }
+
+            100% {
+                transform: scale(0) translateY(-200px);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 767px) {
+            h1 {
+                font-size: 30px;
+                margin-top: 50px;
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Then Can You Complete the Puzzle?</h1>
+
+    <div class="puzzle-container" id="puzzleContainer">
+        <!-- Puzzle Pieces will be inserted here dynamically by JavaScript -->
+    </div>
+
+    <div id="message">You did it! ❤️</div>
+    <!-- <button id="reset-btn" onclick="resetPuzzle()">Play Again</button> -->
+
+    <script>
+        // Array containing the correct positions of the puzzle pieces
+        const correctPositions = [
+            'img/image_part_001.png', 'img/image_part_002.png', 'img/image_part_003.png',
+            'img/image_part_004.png', 'img/image_part_005.png', 'img/image_part_006.png',
+            'img/image_part_007.png', 'img/image_part_008.png', 'img/image_part_009.png'
+        ];
+
+        const puzzleContainer = document.getElementById('puzzleContainer');
+        let pieces = [];
+        let shuffledImages = [];
+
+        // Shuffle the images array
+        function shuffleImages() {
+            shuffledImages = [...correctPositions]; // Copy the correct positions array
+            for (let i = shuffledImages.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledImages[i], shuffledImages[j]] = [shuffledImages[j], shuffledImages[i]]; // Swap elements
+            }
+        }
+
+        // Initialize the puzzle pieces
+        function createPuzzlePieces() {
+            let index = 0;
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const piece = document.createElement('div');
+                    piece.classList.add('puzzle-piece');
+                    piece.setAttribute('draggable', true);
+                    piece.style.backgroundImage = `url(${shuffledImages[index]})`; // Set the shuffled image
+                    piece.setAttribute('data-id', index);
+                    piece.setAttribute('data-position', `${row}-${col}`);
+                    piece.style.left = `${col * 110}px`; // Initial position for each piece
+                    piece.style.top = `${row * 110}px`;
+                    piece.addEventListener('dragstart', dragStart);
+                    piece.addEventListener('dragover', dragOver);
+                    piece.addEventListener('drop', dropPiece);
+                    pieces.push(piece);
+                    puzzleContainer.appendChild(piece);
+                    index++;
+                }
+            }
+        }
+
+        // Drag and Drop Handlers
+        let draggedPiece = null;
+
+        function dragStart(event) {
+            draggedPiece = event.target;
+        }
+
+        function dragOver(event) {
+            event.preventDefault();
+        }
+
+        function dropPiece(event) {
+            event.preventDefault();
+            const target = event.target;
+            if (target !== draggedPiece && target.classList.contains('puzzle-piece')) {
+                // Swap the background images of the dragged and dropped pieces
+                const tempBackground = target.style.backgroundImage;
+                target.style.backgroundImage = draggedPiece.style.backgroundImage;
+                draggedPiece.style.backgroundImage = tempBackground;
+
+                // Swap the positions of the dragged and dropped pieces
+                const tempLeft = target.style.left;
+                const tempTop = target.style.top;
+                target.style.left = draggedPiece.style.left;
+                target.style.top = draggedPiece.style.top;
+                draggedPiece.style.left = tempLeft;
+                draggedPiece.style.top = tempTop;
+
+                checkPuzzleCompletion();
+            }
+        }
+
+        // Check if puzzle is complete
+        function checkPuzzleCompletion() {
+            let completed = true;
+
+            pieces.forEach(piece => {
+                const targetPosition = piece.getAttribute('data-position');
+                const pieceBackground = piece.style.backgroundImage.replace(/url\(["']?(.*?)["']?\)/, '$1'); // Clean URL format
+
+                // Check if the piece's current background image matches the correct image based on the position
+                if (pieceBackground !== correctPositions[parseInt(piece.getAttribute('data-id'))]) {
+                    completed = false;
+                }
+            });
+
+            if (completed) {
+                document.getElementById('message').style.display = 'block';
+                document.getElementById('reset-btn').style.display = 'inline-block';
+            }
+        }
+
+        // Reset Puzzle with Jumping effect
+        function resetPuzzle() {
+            // Add the "jump-out" animation to each piece
+            pieces.forEach(piece => {
+                piece.classList.add('jump-out');
+            });
+
+            // Wait for the animation to finish before resetting the puzzle
+            setTimeout(() => {
+                pieces.forEach(piece => {
+                    piece.classList.remove('jump-out'); // Remove jump animation
+                    piece.style.backgroundImage = ''; // Clear the background images
+                    piece.style.left = ''; // Reset position
+                    piece.style.top = ''; // Reset position
+                });
+
+                // Clear the puzzle container
+                puzzleContainer.innerHTML = '';
+
+                document.getElementById('message').style.display = 'none';
+                document.getElementById('reset-btn').style.display = 'none';
+                shuffledImages = [];
+                shuffleImages(); // Shuffle the images again
+                createPuzzlePieces(); // Recreate the puzzle pieces
+            }, 600); // Duration of the jump-out animation
+        }
+
+        // Initialize the puzzle pieces on page load
+        shuffleImages(); // Shuffle the images
+        createPuzzlePieces(); // Create the puzzle pieces
+    </script>
+
+</body>
+
+</html>
